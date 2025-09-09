@@ -90,12 +90,22 @@ const registerUser = async (req, res) => {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, role, mobile, username } = req.body;
+    const { name, email, password, role, mobile, username, gender, addresses } = req.body;
 
     try {
         let user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ msg: 'User already exists' });
+        }
+
+        // Validate addresses array
+        if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
+            return res.status(400).json({ msg: 'Addresses are required' });
+        }
+        for (const addr of addresses) {
+            if (!addr.label || !addr.houseFlatNo || !addr.area || !addr.city || !addr.state || !addr.pin || !addr.country) {
+                return res.status(400).json({ msg: 'Invalid address format. All fields are required.' });
+            }
         }
 
         user = new User({
@@ -104,6 +114,8 @@ const registerUser = async (req, res) => {
             username,
             password,
             mobile,
+            gender,
+            addresses,
             role: role || 'customer',
             isVerified: true, // already verified through OTP
         });
@@ -121,6 +133,9 @@ const registerUser = async (req, res) => {
             role: user.role,
             isVerified: user.isVerified,
             createdAt: user.createdAt,
+            mobile: user.mobile,
+            gender: user.gender,
+            addresses: user.addresses,
         };
 
         res.status(200).json({
@@ -169,7 +184,7 @@ const loginUser = async (req, res) => {
             isVerified: user.isVerified,
             createdAt: user.createdAt,
             mobile: user.mobile,
-            address: user.address,
+            addresses: user.addresses,
         };
         res.json({ token, role: user.role, user: userResponse });
     } catch (err) {
@@ -195,7 +210,7 @@ const getLoggedInUser = async (req, res) => {
 // @desc    Update user profile
 // @access  Private
 const updateUserProfile = async (req, res) => {
-    const { name, password } = req.body;
+    const { name, oldPassword, newPassword, addresses } = req.body;
 
     try {
         const user = await User.findById(req.user.id);
@@ -206,9 +221,26 @@ const updateUserProfile = async (req, res) => {
 
         if (name) user.name = name;
 
-        if (password) {
+        if (newPassword) {
+            if (!oldPassword) {
+                return res.status(400).json({ msg: 'Old password is required to set a new password' });
+            }
+            const isMatch = await bcrypt.compare(oldPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ msg: 'Old password is incorrect' });
+            }
             const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(password, salt);
+            user.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        if (addresses && Array.isArray(addresses)) {
+            // Validate structured addresses
+            for (const addr of addresses) {
+                if (!addr.label || !addr.houseFlatNo || !addr.area || !addr.city || !addr.state || !addr.pin || !addr.country) {
+                    return res.status(400).json({ msg: 'Invalid address format. All fields are required.' });
+                }
+            }
+            user.addresses = addresses;
         }
 
         await user.save();

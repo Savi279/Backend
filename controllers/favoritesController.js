@@ -16,7 +16,7 @@ const getFavorites = async (req, res) => {
   }
 };
 
-// @desc    Add product to favorites
+// @desc    Toggle product in favorites (add if not present, remove if present)
 // @route   POST /api/favorites/:productId
 // @access  Private
 const addToFavorites = async (req, res) => {
@@ -32,16 +32,16 @@ const addToFavorites = async (req, res) => {
       );
 
       if (productIndex > -1) {
-        // Product already in favorites, return current favorites
-        const populatedFavorites = await Favorites.findById(favorites._id).populate('products');
-        return res.json(populatedFavorites.products);
+        // Product already in favorites, remove it (toggle off)
+        favorites.products.splice(productIndex, 1);
+        await favorites.save();
       } else {
-        // Product not in favorites, add it
+        // Product not in favorites, add it (toggle on)
         favorites.products.push(productId);
         await favorites.save();
       }
     } else {
-      // No favorites for user, create new favorites
+      // No favorites for user, create new favorites with the product
       favorites = await Favorites.create({
         user: req.user.id,
         products: [productId],

@@ -13,7 +13,7 @@ const getDashboardAnalytics = async (req, res) => {
 
     const totalSales = orders.reduce((acc, order) => acc + order.totalPrice, 0);
     const totalOrders = orders.length;
-    const totalUsers = users.length;
+    const totalUsers = users.filter(user => user.role !== 'admin').length;
     const totalProducts = products.length;
 
     // Sales over time (e.g., last 30 days)

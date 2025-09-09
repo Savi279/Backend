@@ -54,6 +54,6 @@ const upload = multer({
         // Apply the file type check before processing the upload
         checkFileType(file, cb);
     }
-}).single('image'); // Expect a single file upload with the field name 'image'
+}).array('images', 4); // Expect up to 4 files with the field name 'images'
 
 export default upload;

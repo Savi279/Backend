@@ -2,8 +2,8 @@ import express from 'express';
 import {
   getCart,
   addToCart,
-  removeFromCart,
-  updateCartItem,
+  removeItem,
+  updateItem,
 } from '../controllers/cartController.js';
 import auth from '../middleware/authMiddleware.js';
 
@@ -12,7 +12,7 @@ const router = express.Router();
 router.route('/').get(auth, getCart).post(auth, addToCart);
 router
   .route('/:productId/:size')
-  .delete(auth, removeFromCart)
-  .put(auth, updateCartItem);
+  .delete(auth, removeItem)
+  .put(auth, updateItem);
 
 export default router;

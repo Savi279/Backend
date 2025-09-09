@@ -2,15 +2,22 @@ import Razorpay from 'razorpay';
 import Order from '../models/Order.js';
 import crypto from 'crypto';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+}
 
 // @desc    Create Razorpay order
 // @route   POST /api/payment/order
 // @access  Private
 const createRazorpayOrder = async (req, res) => {
+  if (!razorpay) {
+    return res.status(500).json({ msg: 'Razorpay not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env' });
+  }
+
   const { amount, currency = 'INR', receipt } = req.body;
 
   try {
@@ -33,6 +40,10 @@ const createRazorpayOrder = async (req, res) => {
 // @route   POST /api/payment/verify
 // @access  Private
 const verifyPayment = async (req, res) => {
+  if (!process.env.RAZORPAY_KEY_SECRET) {
+    return res.status(500).json({ msg: 'Razorpay key secret not configured. Please add RAZORPAY_KEY_SECRET to .env' });
+  }
+
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
 
   const generated_signature = crypto
